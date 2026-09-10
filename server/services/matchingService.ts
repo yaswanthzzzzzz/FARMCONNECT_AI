@@ -1,6 +1,7 @@
-import type { BuyerMatchResult, BuyerProfile, FarmerListing, MatchResponse, TransportConfig } from "@shared/types";
+import type { BuyerMatchResult, BuyerProfile, FarmerListingRecord, MatchResponse, TransportConfig } from "@shared/types";
 import { estimateDistance } from "./distanceService";
 import { demoTransportConfig, estimateTransportCost } from "./transportService";
+import { toPublicFarmerListing } from "../repositories/farmerListingRepository";
 
 export function calculateMatchedQuantity(farmerQuantityKg: number, buyerRequiredQuantityKg: number) {
   if (!Number.isFinite(farmerQuantityKg) || farmerQuantityKg <= 0) throw new Error("Farmer quantity must be greater than zero.");
@@ -28,21 +29,21 @@ function money(value: number) {
   return `₹${value.toLocaleString("en-IN")}`;
 }
 
-function matchedQuantityNote(farmer: FarmerListing, buyer: BuyerProfile, matchedQuantityKg: number) {
+function matchedQuantityNote(farmer: FarmerListingRecord, buyer: BuyerProfile, matchedQuantityKg: number) {
   if (buyer.requiredQuantityKg < farmer.quantityKg) return `Buyer needs ${buyer.requiredQuantityKg.toLocaleString()} kg; this match uses that amount from your ${farmer.quantityKg.toLocaleString()} kg listing.`;
   if (buyer.requiredQuantityKg > farmer.quantityKg) return `Partial fulfilment: buyer needs ${buyer.requiredQuantityKg.toLocaleString()} kg; this match uses your full ${matchedQuantityKg.toLocaleString()} kg listing.`;
   return `Exact quantity fit at ${matchedQuantityKg.toLocaleString()} kg.`;
 }
 
-export function rankBuyerMatches(farmer: FarmerListing, buyers: BuyerProfile[], transportConfig: TransportConfig = demoTransportConfig): BuyerMatchResult[] {
+export function rankBuyerMatches(farmer: FarmerListingRecord, buyers: BuyerProfile[], transportConfig: TransportConfig = demoTransportConfig): BuyerMatchResult[] {
   const candidates = buyers.filter(buyer => buyer.requiredCrop === farmer.crop && buyer.offeredPricePerKg >= farmer.minimumPricePerKg && buyer.requiredQuantityKg > 0);
   if (!candidates.length) return [];
 
   const preliminary = candidates.map(buyer => {
-    const distance = estimateDistance({ city: farmer.city, district: farmer.district, state: farmer.state }, buyer.location);
+    const distance = estimateDistance(farmer, buyer.location);
     const matchedQuantityKg = calculateMatchedQuantity(farmer.quantityKg, buyer.requiredQuantityKg);
     const grossRevenue = calculateGrossRevenue(matchedQuantityKg, buyer.offeredPricePerKg);
-    const estimatedTransportCost = estimateTransportCost(distance.distanceKm, transportConfig);
+    const estimatedTransportCost = distance.source === "unavailable" ? 0 : estimateTransportCost(distance.distanceKm, transportConfig);
     const estimatedNetOutcome = grossRevenue - estimatedTransportCost;
     const quantityFulfillmentPercent = Math.round((matchedQuantityKg / buyer.requiredQuantityKg) * 1000) / 10;
     return { buyer, distance, matchedQuantityKg, grossRevenue, estimatedTransportCost, estimatedNetOutcome, quantityFulfillmentPercent };
@@ -85,10 +86,10 @@ export function rankBuyerMatches(farmer: FarmerListing, buyers: BuyerProfile[], 
   });
 }
 
-export function buildMatchResponse(farmer: FarmerListing, buyers: BuyerProfile[], transportConfig: TransportConfig = demoTransportConfig): MatchResponse {
+export function buildMatchResponse(farmer: FarmerListingRecord, buyers: BuyerProfile[], transportConfig: TransportConfig = demoTransportConfig): MatchResponse {
   const matches = rankBuyerMatches(farmer, buyers, transportConfig);
   return {
-    listing: farmer,
+    listing: toPublicFarmerListing(farmer),
     matches,
     recommendedMatchId: matches[0]?.buyer.id,
     transportConfig,

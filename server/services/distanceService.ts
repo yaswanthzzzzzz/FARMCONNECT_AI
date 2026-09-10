@@ -1,6 +1,8 @@
 import type { DemoLocation, DistanceEstimate } from "@shared/types";
+import { isValidLatitude, isValidLongitude, locationSourceLabel } from "@shared/location";
 
 type LocationLike = Pick<DemoLocation, "city" | "district" | "state"> & Partial<Pick<DemoLocation, "latitude" | "longitude">>;
+const UNAVAILABLE_DISTANCE_PENALTY_KM = 10_000;
 
 const demoCoordinates: Record<string, { latitude: number; longitude: number }> = {
   pune: { latitude: 18.5204, longitude: 73.8567 },
@@ -17,7 +19,7 @@ function keyFor(location: LocationLike) {
 }
 
 export function resolveLocationCoordinates(location: LocationLike) {
-  if (typeof location.latitude === "number" && typeof location.longitude === "number") {
+  if (typeof location.latitude === "number" && typeof location.longitude === "number" && isValidLatitude(location.latitude) && isValidLongitude(location.longitude)) {
     return { latitude: location.latitude, longitude: location.longitude, source: "coordinates" as const };
   }
   const mapped = demoCoordinates[keyFor(location)] ?? demoCoordinates[location.district.trim().toLowerCase().replace(/\s+/g, "-")];
@@ -40,11 +42,18 @@ export function estimateDistance(from: LocationLike, to: LocationLike): Distance
   const fromCoordinates = resolveLocationCoordinates(from);
   const toCoordinates = resolveLocationCoordinates(to);
   if (!fromCoordinates || !toCoordinates) {
-    throw new Error(`No deterministic demo coordinates available for ${from.city} or ${to.city}.`);
+    return {
+      distanceKm: UNAVAILABLE_DISTANCE_PENALTY_KM,
+      source: "unavailable",
+      sourceLabel: locationSourceLabel("unavailable"),
+      isEstimate: true,
+    };
   }
+  const source = fromCoordinates.source === "coordinates" && toCoordinates.source === "coordinates" ? "coordinates" : "demo-mapping";
   return {
     distanceKm: Math.round(haversineDistanceKm(fromCoordinates, toCoordinates) * 10) / 10,
-    source: fromCoordinates.source === "coordinates" && toCoordinates.source === "coordinates" ? "coordinates" : "demo-mapping",
+    source,
+    sourceLabel: locationSourceLabel(source === "coordinates" ? "gps" : "demo"),
     isEstimate: true,
   };
 }

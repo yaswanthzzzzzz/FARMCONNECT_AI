@@ -157,7 +157,7 @@ export function evaluateAggregation(input: AggregationEngineInput): AggregationP
           totalDistanceKm: logistics.totalDistanceKm,
           contributingFarmerCount: contributions.length,
           unnecessaryOverfillKg: Math.max(0, plannedQuantityKg - input.requirement.requiredQuantityKg),
-          distanceMethod: subset.every(candidate => candidate.distanceSource === "coordinates") ? "coordinates" : "demo-mapping",
+          distanceMethod: subset.some(candidate => candidate.distanceSource === "unavailable") ? "unavailable" : subset.every(candidate => candidate.distanceSource === "coordinates") ? "coordinates" : "demo-mapping",
           logistics,
           contributions,
           rankingReasons: [],

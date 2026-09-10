@@ -1,3 +1,6 @@
+import type { Coordinates, LocationSource } from "./location";
+export type { Coordinates, LocationSource } from "./location";
+
 export type UserRole = "farmer" | "buyer" | "admin";
 
 export type Crop = "Tomatoes" | "Onions" | "Potatoes" | "Wheat" | "Rice";
@@ -52,6 +55,7 @@ export type FarmerListing = {
   city: string;
   district: string;
   state: string;
+  locationSource: LocationSource;
   minimumPricePerKg: number;
   status: FarmerListingStatus;
   createdAt: string;
@@ -65,8 +69,12 @@ export type CreateFarmerListingInput = {
   city: string;
   district: string;
   state: string;
+  latitude?: number;
+  longitude?: number;
+  locationSource?: LocationSource;
   minimumPricePerKg: number;
 };
+export type FarmerListingRecord = FarmerListing & Partial<Coordinates>;
 
 export type DemoMarketSnapshot = {
   farmers: FarmerProfile[];
@@ -83,8 +91,9 @@ export type ApiErrorShape = {
 
 export type DistanceEstimate = {
   distanceKm: number;
-  source: "coordinates" | "demo-mapping";
+  source: "coordinates" | "demo-mapping" | "unavailable";
   isEstimate: true;
+  sourceLabel: string;
 };
 
 export type TransportConfig = {
@@ -135,6 +144,7 @@ export type BuyerRequirement = {
   city: string;
   district: string;
   state: string;
+  locationSource: LocationSource;
   offeredPricePerKg: number;
   status: BuyerRequirementStatus;
   createdAt: string;
@@ -148,8 +158,12 @@ export type CreateBuyerRequirementInput = {
   city: string;
   district: string;
   state: string;
+  latitude?: number;
+  longitude?: number;
+  locationSource?: LocationSource;
   offeredPricePerKg: number;
 };
+export type BuyerRequirementRecord = BuyerRequirement & Partial<Coordinates>;
 
 export type MarketPriceReference = {
   crop: Crop;
@@ -170,7 +184,7 @@ export type BuyerSupplyMatch = {
   farmer: FarmerProfile;
   compatible: boolean;
   distanceKm: number;
-  distanceSource: "coordinates" | "demo-mapping";
+  distanceSource: DistanceEstimate["source"];
   estimatedTransportCost: number;
   availableQuantityKg: number;
   matchedQuantityKg: number;
@@ -201,7 +215,7 @@ export type AggregationConstraints = {
 };
 
 export type CollectiveTransportEstimate = {
-  method: "demo-logistics" | "coordinate-estimate";
+  method: "demo-logistics" | "coordinate-estimate" | "unavailable";
   sourceLabel: string;
   collectionLegs: Array<{ listingId: number; distanceKm: number; estimatedCost: number }>;
   deliveryDistanceKm: number;

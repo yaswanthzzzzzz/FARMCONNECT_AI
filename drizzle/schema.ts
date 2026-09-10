@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { double, int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -34,6 +34,9 @@ export const farmerListings = mysqlTable("farmerListings", {
   city: varchar("city", { length: 128 }).notNull(),
   district: varchar("district", { length: 128 }).notNull(),
   state: varchar("state", { length: 128 }).notNull(),
+  latitude: double("latitude"),
+  longitude: double("longitude"),
+  locationSource: varchar("locationSource", { length: 16 }).notNull().default("manual"),
   minimumPricePerKg: int("minimumPricePerKg").notNull(),
   status: mysqlEnum("status", ["active", "archived"]).default("active").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -52,6 +55,9 @@ export const buyerRequirements = mysqlTable("buyerRequirements", {
   city: varchar("city", { length: 128 }).notNull(),
   district: varchar("district", { length: 128 }).notNull(),
   state: varchar("state", { length: 128 }).notNull(),
+  latitude: double("latitude"),
+  longitude: double("longitude"),
+  locationSource: varchar("locationSource", { length: 16 }).notNull().default("manual"),
   offeredPricePerKg: int("offeredPricePerKg").notNull(),
   status: mysqlEnum("status", ["active", "archived"]).default("active").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

@@ -13,6 +13,22 @@ export function estimateCollectiveTransport(candidates: AggregationCandidate[], 
   if (totalQuantityKg > collectiveTransportConfig.vehicleCapacityKg) {
     throw new Error(`Collective quantity exceeds demo vehicle capacity of ${collectiveTransportConfig.vehicleCapacityKg.toLocaleString()} kg.`);
   }
+  if (candidates.some(candidate => candidate.distanceSource === "unavailable")) {
+    return {
+      method: "unavailable",
+      sourceLabel: "Distance unavailable",
+      collectionLegs: [],
+      deliveryDistanceKm: 0,
+      deliveryCost: 0,
+      sharedTransportOpportunity: contributions.length > 1,
+      vehicleCapacityKg: collectiveTransportConfig.vehicleCapacityKg,
+      loadFactor: collectiveTransportConfig.loadFactor,
+      totalDistanceKm: 0,
+      totalCost: 0,
+      costAllocation: contributions.map(contribution => ({ listingId: contribution.farmerListingId, allocatedCost: 0 })),
+      note: "Collective transport estimate is unavailable until all locations have a deterministic distance source.",
+    };
+  }
 
   const candidateById = new Map(candidates.map(candidate => [candidate.listing.id, candidate]));
   const collectionLegs = contributions.map(contribution => {

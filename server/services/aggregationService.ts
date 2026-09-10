@@ -1,5 +1,5 @@
-import type { AggregationCandidate, AggregationConstraints, AggregationEvaluationResponse, AggregationExplanationInput, AggregationPlan, BuyerRequirement } from "@shared/types";
-import { buyerRequirementRepository } from "../repositories/buyerRequirementRepository";
+import type { AggregationCandidate, AggregationConstraints, AggregationEvaluationResponse, AggregationExplanationInput, AggregationPlan, BuyerRequirementRecord } from "@shared/types";
+import { buyerRequirementRepository, toPublicBuyerRequirement } from "../repositories/buyerRequirementRepository";
 import { farmerListingRepository } from "../repositories/farmerListingRepository";
 import { aggregationPlanRepository } from "../repositories/aggregationPlanRepository";
 import { estimateDistance } from "./distanceService";
@@ -9,11 +9,11 @@ import { evaluateAggregation } from "./aggregationEngine";
 import { estimateCollectiveTransport } from "./collectiveTransportService";
 import { aggregationExplanationService } from "./aggregationExplanationService";
 
-function toLocation(city: string, district: string, state: string) {
-  return { city, district, state };
+function toLocation(city: string, district: string, state: string, latitude?: number, longitude?: number) {
+  return { city, district, state, latitude, longitude };
 }
 
-function inputForExplanation(plan: AggregationPlan, requirement: BuyerRequirement): AggregationExplanationInput {
+function inputForExplanation(plan: AggregationPlan, requirement: BuyerRequirementRecord): AggregationExplanationInput {
   return {
     plan,
     requirement,
@@ -22,17 +22,17 @@ function inputForExplanation(plan: AggregationPlan, requirement: BuyerRequiremen
   };
 }
 
-async function loadCandidates(requirement: BuyerRequirement): Promise<AggregationCandidate[]> {
+async function loadCandidates(requirement: BuyerRequirementRecord): Promise<AggregationCandidate[]> {
   const listings = await farmerListingRepository.listActiveForAggregation();
   return listings.map(listing => {
     try {
-      const distance = estimateDistance(toLocation(listing.city, listing.district, listing.state), toLocation(requirement.city, requirement.district, requirement.state));
+      const distance = estimateDistance(toLocation(listing.city, listing.district, listing.state, listing.latitude, listing.longitude), toLocation(requirement.city, requirement.district, requirement.state, requirement.latitude, requirement.longitude));
       const compatible = listing.status === "active" && listing.crop === requirement.crop && listing.quantityKg > 0 && listing.minimumPricePerKg <= requirement.offeredPricePerKg;
       return {
         listing,
         distanceKm: distance.distanceKm,
         distanceSource: distance.source,
-        estimatedIndividualTransportCost: estimateTransportCost(distance.distanceKm, demoTransportConfig),
+        estimatedIndividualTransportCost: distance.source === "unavailable" ? 0 : estimateTransportCost(distance.distanceKm, demoTransportConfig),
         compatible,
         compatibilityReason: compatible ? "Crop, price and location are compatible." : listing.crop !== requirement.crop ? `Crop mismatch: listing offers ${listing.crop}.` : listing.minimumPricePerKg > requirement.offeredPricePerKg ? `Farmer minimum is ₹${listing.minimumPricePerKg}/kg.` : "Listing is not currently available.",
         availableQuantityKg: listing.quantityKg,
@@ -41,7 +41,7 @@ async function loadCandidates(requirement: BuyerRequirement): Promise<Aggregatio
       return {
         listing,
         distanceKm: Number.POSITIVE_INFINITY,
-        distanceSource: "demo-mapping" as const,
+        distanceSource: "unavailable" as const,
         estimatedIndividualTransportCost: 0,
         compatible: false,
         compatibilityReason: "Location estimate unavailable for this listing.",
@@ -52,7 +52,7 @@ async function loadCandidates(requirement: BuyerRequirement): Promise<Aggregatio
 }
 
 export const aggregationService = {
-  async evaluate(requirement: BuyerRequirement, constraints?: AggregationConstraints, allowModelExplanation = true): Promise<AggregationEvaluationResponse> {
+  async evaluate(requirement: BuyerRequirementRecord, constraints?: AggregationConstraints, allowModelExplanation = true): Promise<AggregationEvaluationResponse> {
     const marketReference = await marketPriceService.getReference({ crop: requirement.crop, location: requirement.location });
     const candidates = await loadCandidates(requirement);
     const plans = evaluateAggregation({
@@ -65,7 +65,7 @@ export const aggregationService = {
     const recommendedPlan = plans[0];
     const explanation = recommendedPlan ? await aggregationExplanationService.explain(inputForExplanation(recommendedPlan, requirement), allowModelExplanation) : { text: "No deterministic collective fulfilment plan is available for the current requirement and active supply.", source: "deterministic" as const };
     return {
-      requirement,
+      requirement: toPublicBuyerRequirement(requirement),
       recommendedPlan,
       alternatives: plans.slice(1).map(plan => ({ plan, rankingReasons: plan.rankingReasons })),
       candidateCount: candidates.filter(candidate => candidate.compatible).length,
