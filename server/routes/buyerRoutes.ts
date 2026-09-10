@@ -16,7 +16,7 @@ export function registerBuyerRoutes(app: Express) {
   app.get("/api/buyers/requirements", async (req, res, next) => {
     try {
       const user = await requireAuthenticatedUser(req);
-      res.json({ requirements: await buyerService.listRequirements(user.openId) });
+      res.json({ requirements: await buyerService.listRequirements(user.identityKey) });
     } catch (error) { next(error); }
   });
 
@@ -28,7 +28,7 @@ export function registerBuyerRoutes(app: Express) {
         res.status(400).json({ code: "VALIDATION_ERROR", message: "Please correct the highlighted requirement fields.", issues: parsed.error.issues.map(issue => ({ path: issue.path, message: issue.message })) });
         return;
       }
-      res.status(201).json({ requirement: await buyerService.create({ ...parsed.data, buyerKey: user.openId }) });
+      res.status(201).json({ requirement: await buyerService.create({ ...parsed.data, buyerKey: user.identityKey }) });
     } catch (error) { next(error); }
   });
 
@@ -37,7 +37,7 @@ export function registerBuyerRoutes(app: Express) {
       const user = await requireAuthenticatedUser(req);
       const id = Number(req.params.id);
       if (!Number.isInteger(id) || id <= 0) { res.status(400).json({ code: "VALIDATION_ERROR", message: "Requirement id must be a positive integer." }); return; }
-      res.json(await buyerService.calculate(id, user.openId));
+      res.json(await buyerService.calculate(id, user.identityKey));
     } catch (error) {
       if (error instanceof Error && error.message.includes("not found")) { res.status(404).json({ code: "REQUIREMENT_NOT_FOUND", message: error.message }); return; }
       next(error);

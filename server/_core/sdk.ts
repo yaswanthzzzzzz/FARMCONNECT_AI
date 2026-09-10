@@ -19,7 +19,8 @@ const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.length > 0;
 
 export type SessionPayload = {
-  openId: string;
+  openId?: string;
+  identityKey: string;
   appId: string;
   name: string;
 };
@@ -167,14 +168,14 @@ class SDKServer {
     openId: string,
     options: { expiresInMs?: number; name?: string } = {}
   ): Promise<string> {
-    return this.signSession(
-      {
-        openId,
-        appId: ENV.appId,
-        name: options.name || "",
-      },
-      options
-    );
+    return this.createApplicationSession(openId, { ...options, openId });
+  }
+
+  async createApplicationSession(
+    identityKey: string,
+    options: { expiresInMs?: number; name?: string; openId?: string } = {}
+  ): Promise<string> {
+    return this.signSession({ identityKey, openId: options.openId, appId: ENV.appId, name: options.name || "" }, options);
   }
 
   async signSession(
@@ -188,6 +189,7 @@ class SDKServer {
 
     return new SignJWT({
       openId: payload.openId,
+      identityKey: payload.identityKey,
       appId: payload.appId,
       name: payload.name,
     })
@@ -198,7 +200,7 @@ class SDKServer {
 
   async verifySession(
     cookieValue: string | undefined | null
-  ): Promise<{ openId: string; appId: string; name: string } | null> {
+  ): Promise<{ openId?: string; identityKey: string; appId: string; name: string } | null> {
     if (!cookieValue) {
       console.warn("[Auth] Missing session cookie");
       return null;
@@ -209,19 +211,21 @@ class SDKServer {
       const { payload } = await jwtVerify(cookieValue, secretKey, {
         algorithms: ["HS256"],
       });
-      const { openId, appId, name } = payload as Record<string, unknown>;
+      const { openId, identityKey, appId, name } = payload as Record<string, unknown>;
+      const resolvedIdentityKey = isNonEmptyString(identityKey) ? identityKey : isNonEmptyString(openId) ? openId : "";
 
       if (
-        !isNonEmptyString(openId) ||
+        !resolvedIdentityKey ||
         !isNonEmptyString(appId) ||
-        !isNonEmptyString(name)
+        typeof name !== "string"
       ) {
         console.warn("[Auth] Session payload missing required fields");
         return null;
       }
 
       return {
-        openId,
+        openId: isNonEmptyString(openId) ? openId : undefined,
+        identityKey: resolvedIdentityKey,
         appId,
         name,
       };
@@ -276,7 +280,7 @@ class SDKServer {
       throw ForbiddenError("Invalid session cookie");
     }
 
-    if (session.openId.startsWith(CRON_OPEN_ID_PREFIX)) {
+    if (session.openId?.startsWith(CRON_OPEN_ID_PREFIX)) {
       const userInfo = await this.getUserInfoWithJwt(sessionToken ?? "");
       const taskUid = userInfo.taskUid ?? null;
       if (!taskUid) {
@@ -285,9 +289,10 @@ class SDKServer {
       return buildCronUser(userInfo);
     }
 
-    const sessionUserId = session.openId;
+    const sessionUserId = session.identityKey;
     const signedInAt = new Date();
-    let user = await db.getUserByOpenId(sessionUserId);
+    let user = await db.getUserByIdentityKey(sessionUserId);
+    if (!user && session.openId) user = await db.getUserByOpenId(session.openId);
 
     // If user not in DB, sync from OAuth server automatically
     if (!user) {
@@ -295,6 +300,7 @@ class SDKServer {
         const userInfo = await this.getUserInfoWithJwt(sessionToken ?? "");
         await db.upsertUser({
           openId: userInfo.openId,
+          identityKey: userInfo.openId,
           name: userInfo.name || null,
           email: userInfo.email ?? null,
           loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
@@ -312,7 +318,8 @@ class SDKServer {
     }
 
     await db.upsertUser({
-      openId: user.openId,
+      openId: user.openId ?? undefined,
+      identityKey: user.identityKey,
       lastSignedIn: signedInAt,
     });
 
@@ -335,6 +342,7 @@ function buildCronUser(
   return {
     id: -1,
     openId: userInfo.openId,
+    identityKey: userInfo.openId,
     name: userInfo.name || "Manus Scheduled Task",
     email: null,
     loginMethod: null,

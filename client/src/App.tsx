@@ -15,6 +15,7 @@ import FarmerDashboard from "./pages/FarmerDashboard";
 import Home from "./pages/Home";
 import HowItWorks from "./pages/HowItWorks";
 import Login from "./pages/Login";
+import Register from "./pages/Register";
 import Demo from "./pages/Demo";
 import Matches from "./pages/Matches";
 import ProduceListing from "./pages/ProduceListing";
@@ -27,6 +28,7 @@ function Router() {
   return <AppShell><Switch>
     <Route path="/" component={Home} />
     <Route path="/login" component={Login} />
+    <Route path="/register" component={Register} />
     <Route path="/demo" component={Demo} />
     <Route path="/farmer"><Protected><FarmerDashboard /></Protected></Route>
     <Route path="/farmer/produce"><Protected><ProduceListing /></Protected></Route>

@@ -10,3 +10,12 @@ export async function requireAuthenticatedUser(req: Request): Promise<Authentica
     throw UnauthorizedError("Authentication is required for this workspace.");
   }
 }
+
+export function assertSameOrigin(req: Request) {
+  const origin = req.headers.origin;
+  if (!origin) return;
+  const forwardedProto = req.headers["x-forwarded-proto"];
+  const protocol = typeof forwardedProto === "string" ? forwardedProto.split(",")[0]?.trim() || req.protocol : req.protocol;
+  const expected = `${protocol}://${req.get("host")}`;
+  if (origin !== expected) throw UnauthorizedError("Invalid request origin.");
+}

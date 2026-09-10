@@ -12,7 +12,7 @@ export function registerMatchRoutes(app: Express) {
         res.status(400).json({ code: "VALIDATION_ERROR", message: "Provide a valid saved farmer listing for matching.", issues: parsed.error.issues.map(issue => ({ path: issue.path, message: issue.message })) });
         return;
       }
-      res.status(200).json(await matchService.calculate({ ...parsed.data, farmerKey: user.openId }));
+      res.status(200).json(await matchService.calculate({ ...parsed.data, farmerKey: user.identityKey }));
     } catch (error) {
       if (error instanceof Error && error.message.includes("not found")) {
         res.status(404).json({ code: "LISTING_NOT_FOUND", message: error.message });

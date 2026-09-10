@@ -20,7 +20,7 @@ export function registerFarmerRoutes(app: Express) {
   app.get("/api/farmers/listings", async (req, res, next) => {
     try {
       const user = await requireAuthenticatedUser(req);
-      const listings = await farmerListingService.list(user.openId);
+      const listings = await farmerListingService.list(user.identityKey);
       res.json({ listings });
     } catch (error) {
       next(error);
@@ -35,7 +35,7 @@ export function registerFarmerRoutes(app: Express) {
         res.status(400).json({ code: "VALIDATION_ERROR", message: "Please correct the highlighted listing fields.", issues: parsed.error.issues.map(issue => ({ path: issue.path, message: issue.message })) });
         return;
       }
-      const listing = await farmerListingService.create({ ...parsed.data, farmerKey: user.openId });
+      const listing = await farmerListingService.create({ ...parsed.data, farmerKey: user.identityKey });
       res.status(201).json({ listing });
     } catch (error) {
       next(error);

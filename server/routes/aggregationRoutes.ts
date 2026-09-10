@@ -43,7 +43,7 @@ export function registerAggregationRoutes(app: Express) {
         maxContributingFarmers: numeric(req.query.maxContributingFarmers),
         maxDistanceKm: numeric(req.query.maxDistanceKm),
       });
-      res.json(await aggregationService.evaluateByRequirementId(requirementId, user.openId, constraints, true));
+      res.json(await aggregationService.evaluateByRequirementId(requirementId, user.identityKey, constraints, true));
     } catch (error) {
       if (error instanceof Error && error.message.includes("not found")) {
         res.status(404).json({ code: "REQUIREMENT_NOT_FOUND", message: error.message });
@@ -61,7 +61,7 @@ export function registerAggregationRoutes(app: Express) {
         res.status(400).json({ code: "VALIDATION_ERROR", message: "Provide a valid buyer requirement and aggregation constraints.", issues: parsed.error.issues.map(issue => ({ path: issue.path, message: issue.message })) });
         return;
       }
-      res.json(await aggregationService.evaluateByRequirementId(parsed.data.requirementId, user.openId, parsed.data.constraints, true));
+      res.json(await aggregationService.evaluateByRequirementId(parsed.data.requirementId, user.identityKey, parsed.data.constraints, true));
     } catch (error) {
       if (error instanceof Error && error.message.includes("not found")) {
         res.status(404).json({ code: "REQUIREMENT_NOT_FOUND", message: error.message });
@@ -80,13 +80,13 @@ export function registerAggregationRoutes(app: Express) {
         res.status(400).json({ code: "VALIDATION_ERROR", message: "Provide a valid requirement id and optional plan index." });
         return;
       }
-      const evaluation = await aggregationService.evaluateByRequirementId(requirementId, user.openId, undefined, false);
+      const evaluation = await aggregationService.evaluateByRequirementId(requirementId, user.identityKey, undefined, false);
       const plan = [evaluation.recommendedPlan, ...evaluation.alternatives.map(alternative => alternative.plan)].filter(Boolean)[parsed.data.planIndex ?? 0];
       if (!plan) {
         res.status(422).json({ code: "NO_PLAN", message: "No calculated aggregation plan is available to save." });
         return;
       }
-      const saved = await aggregationService.persistSelectedPlan(requirementId, user.openId, plan);
+      const saved = await aggregationService.persistSelectedPlan(requirementId, user.identityKey, plan);
       res.status(201).json({ plan: saved, message: "Calculated plan saved as proposed. No farmer acceptance is implied." });
     } catch (error) {
       if (error instanceof Error && error.message.includes("not found")) {
@@ -105,7 +105,7 @@ export function registerAggregationRoutes(app: Express) {
         res.status(400).json({ code: "VALIDATION_ERROR", message: "Plan id must be a positive integer." });
         return;
       }
-      const plan = await aggregationService.getSavedPlan(planId, user.openId);
+      const plan = await aggregationService.getSavedPlan(planId, user.identityKey);
       if (!plan) {
         res.status(404).json({ code: "PLAN_NOT_FOUND", message: "Aggregation plan was not found." });
         return;

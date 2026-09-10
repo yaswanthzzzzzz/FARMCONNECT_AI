@@ -1,4 +1,4 @@
-import { double, int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { double, int, mysqlEnum, mysqlTable, text, timestamp, unique, varchar } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -11,8 +11,10 @@ export const users = mysqlTable("users", {
    * Use this for relations between tables.
    */
   id: int("id").autoincrement().primaryKey(),
-  /** Manus OAuth identifier (openId) returned from the OAuth callback. Unique per user. */
-  openId: varchar("openId", { length: 64 }).notNull().unique(),
+  /** Manus OAuth identifier (openId) returned from the OAuth callback. Null for password-only accounts. */
+  openId: varchar("openId", { length: 64 }).unique(),
+  /** Provider-neutral application identity used for new account-owned records and sessions. */
+  identityKey: varchar("identityKey", { length: 128 }).notNull().unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
@@ -24,6 +26,24 @@ export const users = mysqlTable("users", {
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
+
+export const passwordCredentials = mysqlTable("passwordCredentials", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }).unique(),
+  usernameNormalized: varchar("usernameNormalized", { length: 64 }).notNull(),
+  usernameDisplay: varchar("usernameDisplay", { length: 64 }).notNull(),
+  passwordHash: text("passwordHash").notNull(),
+  passwordVersion: varchar("passwordVersion", { length: 32 }).notNull().default("argon2id-v1"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  lastPasswordLoginAt: timestamp("lastPasswordLoginAt"),
+  disabledAt: timestamp("disabledAt"),
+}, table => ({
+  usernameNormalizedUnique: unique("passwordCredentials_usernameNormalized_unique").on(table.usernameNormalized),
+}));
+
+export type PasswordCredential = typeof passwordCredentials.$inferSelect;
+export type InsertPasswordCredential = typeof passwordCredentials.$inferInsert;
 
 export const farmerListings = mysqlTable("farmerListings", {
   id: int("id").autoincrement().primaryKey(),

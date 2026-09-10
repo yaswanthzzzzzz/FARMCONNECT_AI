@@ -12,6 +12,7 @@ const authenticatedContext: TrpcContext = {
   user: {
     id: 7,
     openId: "new-google-user",
+    identityKey: "new-google-user",
     name: "New Google User",
     email: "new@example.com",
     loginMethod: "google",
