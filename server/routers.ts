@@ -10,11 +10,16 @@ import { createBuyerRequirementSchema, buyerService } from "./services/buyerServ
 import { marketPriceQuerySchema, marketPriceService } from "./services/marketPriceService";
 import { aggregationService } from "./services/aggregationService";
 import { aggregationConstraintsSchema } from "./routes/aggregationRoutes";
+import { upsertUser } from "./db";
 
 export const appRouter = router({
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
+    setRole: protectedProcedure.input(z.object({ role: z.enum(["farmer", "buyer"]) })).mutation(async ({ ctx, input }) => {
+      await upsertUser({ openId: ctx.user.openId, role: input.role });
+      return { ...ctx.user, role: input.role };
+    }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
