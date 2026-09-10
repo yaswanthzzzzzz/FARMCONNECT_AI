@@ -14,7 +14,7 @@ export default function BuyerMatches() {
   const params = new URLSearchParams(window.location.search);
   const parsedId = Number(params.get("requirementId") ?? window.location.pathname.split("/").pop());
   const requirementId = Number.isInteger(parsedId) && parsedId > 0 ? parsedId : undefined;
-  const query = trpc.buyer.matches.useQuery({ requirementId: requirementId ?? 0, buyerKey: "demo-buyer-sahyadri" }, { enabled: Boolean(requirementId) });
+  const query = trpc.buyer.matches.useQuery({ requirementId: requirementId ?? 0 }, { enabled: Boolean(requirementId) });
   const detail = window.location.pathname.startsWith("/buyer/requirements/");
 
   if (!requirementId) return <div className="container py-10 sm:py-14"><Link href="/buyer" className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-[#66806d] hover:text-[#1b5e3c]"><ArrowLeft size={15} /> Back to buyer workspace</Link><EmptyPanel title="Create a requirement first" message="Compatible farmer supply needs a saved crop, quantity, offer and sourcing location." action={<ActionButton href="/buyer/requirement">Create requirement <ArrowRight size={15} /></ActionButton>} /></div>;

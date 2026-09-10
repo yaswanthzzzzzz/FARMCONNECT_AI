@@ -5,13 +5,27 @@ import type { TrpcContext } from "./_core/context";
 
 function createContext(): TrpcContext {
   return {
-    user: undefined,
+    user: {
+      id: 1,
+      openId: "demo-farmer-krishna",
+      name: "Test Farmer",
+      email: "farmer@example.com",
+      loginMethod: "test",
+      role: "user",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastSignedIn: new Date(),
+    },
     req: { protocol: "https", headers: {} } as TrpcContext["req"],
     res: {} as TrpcContext["res"],
   };
 }
 
 describe("farmer listings", () => {
+  it("rejects unauthenticated listing history requests", async () => {
+    await expect(appRouter.createCaller({ ...createContext(), user: null }).farmer.listings()).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+  });
+
   it("rejects zero and negative listing values", () => {
     const result = createFarmerListingSchema.safeParse({
       crop: "Tomatoes",

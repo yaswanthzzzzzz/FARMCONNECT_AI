@@ -2,12 +2,14 @@ import { COOKIE_NAME } from "@shared/const";
 import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router } from "./_core/trpc";
+import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { farmerListingService, createFarmerListingSchema } from "./services/farmerListingService";
 import { marketService } from "./services/marketService";
 import { matchRequestSchema, matchService } from "./services/matchService";
 import { createBuyerRequirementSchema, buyerService } from "./services/buyerService";
 import { marketPriceQuerySchema, marketPriceService } from "./services/marketPriceService";
+import { aggregationService } from "./services/aggregationService";
+import { aggregationConstraintsSchema } from "./routes/aggregationRoutes";
 
 export const appRouter = router({
   system: systemRouter,
@@ -23,16 +25,23 @@ export const appRouter = router({
     demoSnapshot: publicProcedure.query(() => marketService.getDemoSnapshot()),
   }),
   farmer: router({
-    listings: publicProcedure.input(z.object({ farmerKey: z.string().optional() }).optional()).query(({ input }) => farmerListingService.list(input?.farmerKey)),
-    createListing: publicProcedure.input(createFarmerListingSchema).mutation(({ input }) => farmerListingService.create(input)),
+    listings: protectedProcedure.query(({ ctx }) => farmerListingService.list(ctx.user.openId)),
+    createListing: protectedProcedure.input(createFarmerListingSchema).mutation(({ ctx, input }) => farmerListingService.create({ ...input, farmerKey: ctx.user.openId })),
   }),
   matches: router({
-    calculate: publicProcedure.input(matchRequestSchema).mutation(({ input }) => matchService.calculate(input)),
+    calculate: protectedProcedure.input(matchRequestSchema).mutation(({ ctx, input }) => matchService.calculate({ ...input, farmerKey: ctx.user.openId })),
   }),
   buyer: router({
-    requirements: publicProcedure.input(z.object({ buyerKey: z.string().optional() }).optional()).query(({ input }) => buyerService.listRequirements(input?.buyerKey)),
-    createRequirement: publicProcedure.input(createBuyerRequirementSchema).mutation(({ input }) => buyerService.create(input)),
-    matches: publicProcedure.input(z.object({ requirementId: z.number().int().positive(), buyerKey: z.string().optional() })).query(({ input }) => buyerService.calculate(input.requirementId, input.buyerKey)),
+    requirements: protectedProcedure.query(({ ctx }) => buyerService.listRequirements(ctx.user.openId)),
+    createRequirement: protectedProcedure.input(createBuyerRequirementSchema).mutation(({ ctx, input }) => buyerService.create({ ...input, buyerKey: ctx.user.openId })),
+    matches: protectedProcedure.input(z.object({ requirementId: z.number().int().positive() })).query(({ ctx, input }) => buyerService.calculate(input.requirementId, ctx.user.openId)),
+    aggregationPlans: protectedProcedure.input(z.object({ requirementId: z.number().int().positive(), constraints: aggregationConstraintsSchema.optional() })).query(({ ctx, input }) => aggregationService.evaluateByRequirementId(input.requirementId, ctx.user.openId, input.constraints, true)),
+    saveAggregationPlan: protectedProcedure.input(z.object({ requirementId: z.number().int().positive(), planIndex: z.number().int().nonnegative().max(4).optional() })).mutation(async ({ ctx, input }) => {
+      const evaluation = await aggregationService.evaluateByRequirementId(input.requirementId, ctx.user.openId, undefined, false);
+      const plan = [evaluation.recommendedPlan, ...evaluation.alternatives.map(alternative => alternative.plan)].filter(Boolean)[input.planIndex ?? 0];
+      if (!plan) throw new Error("No calculated aggregation plan is available to save.");
+      return aggregationService.persistSelectedPlan(input.requirementId, ctx.user.openId, plan);
+    }),
   }),
   marketPrices: router({
     reference: publicProcedure.input(marketPriceQuerySchema).query(({ input }) => marketPriceService.getReference(input)),

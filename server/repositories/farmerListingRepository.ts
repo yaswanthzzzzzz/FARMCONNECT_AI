@@ -21,6 +21,15 @@ const fallbackListings: FarmerListing[] = [
   },
 ];
 
+const aggregationFallbackListings: FarmerListing[] = [
+  ...fallbackListings,
+  // These are additional aggregation-only demo listings. Keep distinct farmer keys so they cannot be confused with the Phase 1 demo profiles.
+  { id: 2, farmerKey: "demo-aggregation-pimpri", crop: "Tomatoes", quantityKg: 1000, location: "Pimpri-Chinchwad, Pune", city: "Pimpri-Chinchwad", district: "Pune", state: "Maharashtra", minimumPricePerKg: 22, status: "active", createdAt: "2026-09-01T08:10:00.000Z" },
+  { id: 3, farmerKey: "demo-aggregation-pune", crop: "Tomatoes", quantityKg: 2500, location: "Pune, Maharashtra", city: "Pune", district: "Pune", state: "Maharashtra", minimumPricePerKg: 23, status: "active", createdAt: "2026-09-01T08:20:00.000Z" },
+  { id: 4, farmerKey: "demo-aggregation-baramati", crop: "Tomatoes", quantityKg: 3000, location: "Baramati, Pune", city: "Baramati", district: "Pune", state: "Maharashtra", minimumPricePerKg: 21, status: "active", createdAt: "2026-09-01T08:30:00.000Z" },
+  { id: 5, farmerKey: "demo-aggregation-lonavala", crop: "Tomatoes", quantityKg: 2800, location: "Lonavala, Pune", city: "Lonavala", district: "Pune", state: "Maharashtra", minimumPricePerKg: 22, status: "active", createdAt: "2026-09-01T08:40:00.000Z" },
+];
+
 function toDomain(row: typeof farmerListings.$inferSelect): FarmerListing {
   return {
     id: row.id,
@@ -53,6 +62,13 @@ export const farmerListingRepository = {
 
     const rows = await db.select().from(farmerListings).where(eq(farmerListings.farmerKey, farmerKey)).orderBy(desc(farmerListings.createdAt));
     return rows.length ? rows.map(toDomain) : fallbackListings.filter(listing => listing.farmerKey === farmerKey);
+  },
+
+  async listActiveForAggregation(): Promise<FarmerListing[]> {
+    const db = await getDb();
+    if (!db) return aggregationFallbackListings.filter(listing => listing.status === "active");
+    const rows = await db.select().from(farmerListings).where(eq(farmerListings.status, "active"));
+    return rows.length ? rows.map(toDomain) : aggregationFallbackListings.filter(listing => listing.status === "active");
   },
 
   async create(input: CreateFarmerListingInput): Promise<FarmerListing> {

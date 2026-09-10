@@ -60,3 +60,45 @@ export const buyerRequirements = mysqlTable("buyerRequirements", {
 
 export type BuyerRequirementRow = typeof buyerRequirements.$inferSelect;
 export type InsertBuyerRequirement = typeof buyerRequirements.$inferInsert;
+
+export const aggregationPlans = mysqlTable("aggregationPlans", {
+  id: int("id").autoincrement().primaryKey(),
+  requirementId: int("requirementId").notNull(),
+  buyerKey: varchar("buyerKey", { length: 128 }).notNull(),
+  status: mysqlEnum("status", ["proposed", "selected", "expired", "cancelled"]).default("proposed").notNull(),
+  fulfilmentType: mysqlEnum("fulfilmentType", ["full", "partial"]).notNull(),
+  requiredQuantityKg: int("requiredQuantityKg").notNull(),
+  plannedQuantityKg: int("plannedQuantityKg").notNull(),
+  remainingQuantityKg: int("remainingQuantityKg").notNull(),
+  offeredPricePerKg: int("offeredPricePerKg").notNull(),
+  grossRevenue: int("grossRevenue").notNull(),
+  transportCost: int("transportCost").notNull(),
+  estimatedNetOutcome: int("estimatedNetOutcome").notNull(),
+  totalDistanceKm: int("totalDistanceKm").notNull(),
+  distanceMethod: varchar("distanceMethod", { length: 64 }).notNull(),
+  logisticsSnapshot: text("logisticsSnapshot").notNull(),
+  marketReferenceSnapshot: text("marketReferenceSnapshot"),
+  algorithmVersion: varchar("algorithmVersion", { length: 64 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  expiresAt: timestamp("expiresAt"),
+});
+
+export type AggregationPlanRow = typeof aggregationPlans.$inferSelect;
+export type InsertAggregationPlan = typeof aggregationPlans.$inferInsert;
+
+export const aggregationPlanContributions = mysqlTable("aggregationPlanContributions", {
+  id: int("id").autoincrement().primaryKey(),
+  planId: int("planId").notNull(),
+  farmerListingId: int("farmerListingId").notNull(),
+  farmerKey: varchar("farmerKey", { length: 128 }).notNull(),
+  contributedQuantityKg: int("contributedQuantityKg").notNull(),
+  minimumPricePerKg: int("minimumPricePerKg").notNull(),
+  distanceKm: int("distanceKm").notNull(),
+  estimatedTransportCost: int("estimatedTransportCost").notNull(),
+  contributionOutcome: int("contributionOutcome").notNull(),
+  sequence: int("sequence").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type AggregationPlanContributionRow = typeof aggregationPlanContributions.$inferSelect;
+export type InsertAggregationPlanContribution = typeof aggregationPlanContributions.$inferInsert;

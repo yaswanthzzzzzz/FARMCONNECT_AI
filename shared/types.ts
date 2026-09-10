@@ -186,3 +186,104 @@ export type BuyerMatchResponse = {
   aggregationAvailable: boolean;
   message: string;
 };
+
+export type AggregationFulfilmentType = "full" | "partial";
+export type AggregationPlanStatus = "proposed" | "selected" | "expired" | "cancelled";
+
+export type AggregationConstraints = {
+  maxCandidates?: number;
+  maxCombinations?: number;
+  maxContributingFarmers?: number;
+  maxDistanceKm?: number;
+  minimumFulfilmentPercent?: number;
+  allowPartial?: boolean;
+  quantityStepKg?: number;
+};
+
+export type CollectiveTransportEstimate = {
+  method: "demo-logistics" | "coordinate-estimate";
+  sourceLabel: string;
+  collectionLegs: Array<{ listingId: number; distanceKm: number; estimatedCost: number }>;
+  deliveryDistanceKm: number;
+  deliveryCost: number;
+  sharedTransportOpportunity: boolean;
+  vehicleCapacityKg: number;
+  loadFactor: number;
+  totalDistanceKm: number;
+  totalCost: number;
+  costAllocation: Array<{ listingId: number; allocatedCost: number }>;
+  note: string;
+};
+
+export type AggregationCandidate = {
+  listing: FarmerListing;
+  distanceKm: number;
+  distanceSource: DistanceEstimate["source"];
+  estimatedIndividualTransportCost: number;
+  compatible: boolean;
+  compatibilityReason: string;
+  availableQuantityKg: number;
+};
+
+export type AggregationPlanContribution = {
+  id?: number;
+  planId?: number;
+  farmerListingId: number;
+  farmerKey: string;
+  contributedQuantityKg: number;
+  minimumPricePerKg: number;
+  distanceKm: number;
+  estimatedTransportCost: number;
+  contributionOutcome: number;
+  sequence: number;
+};
+
+export type AggregationPlanAlternative = {
+  plan: AggregationPlan;
+  rankingReasons: string[];
+};
+
+export type AggregationPlan = {
+  id?: number;
+  requirementId: number;
+  status: AggregationPlanStatus;
+  fulfilmentType: AggregationFulfilmentType;
+  requiredQuantityKg: number;
+  plannedQuantityKg: number;
+  remainingQuantityKg: number;
+  fulfilmentPercent: number;
+  offeredPricePerKg: number;
+  grossRevenue: number;
+  transportCost: number;
+  estimatedNetOutcome: number;
+  totalDistanceKm: number;
+  contributingFarmerCount: number;
+  unnecessaryOverfillKg: number;
+  distanceMethod: DistanceEstimate["source"];
+  logistics: CollectiveTransportEstimate;
+  contributions: AggregationPlanContribution[];
+  rankingReasons: string[];
+  algorithmVersion: string;
+  marketReference?: MarketPriceReference;
+  createdAt?: string;
+  expiresAt?: string;
+};
+
+export type AggregationExplanationInput = {
+  plan: Pick<AggregationPlan, "fulfilmentType" | "requiredQuantityKg" | "plannedQuantityKg" | "remainingQuantityKg" | "fulfilmentPercent" | "grossRevenue" | "transportCost" | "estimatedNetOutcome" | "contributingFarmerCount" | "rankingReasons" | "algorithmVersion">;
+  requirement: Pick<BuyerRequirement, "crop" | "requiredQuantityKg" | "offeredPricePerKg" | "location">;
+  contributions: Array<Pick<AggregationPlanContribution, "farmerListingId" | "contributedQuantityKg" | "distanceKm" | "estimatedTransportCost">>;
+  marketReference?: Pick<MarketPriceReference, "status" | "source" | "observedAt" | "modalPrice" | "minPrice" | "maxPrice">;
+};
+
+export type AggregationEvaluationResponse = {
+  requirement: BuyerRequirement;
+  recommendedPlan?: AggregationPlan;
+  alternatives: AggregationPlanAlternative[];
+  candidateCount: number;
+  marketReference?: MarketPriceReference;
+  logisticsMethod: CollectiveTransportEstimate["method"];
+  logisticsLabel: string;
+  explanation: { text: string; source: "deterministic" | "openai" };
+  message: string;
+};

@@ -56,7 +56,6 @@ export default function ProduceListing() {
     setApiError("");
     setCreatedListing(null);
     createListing.mutate({
-      farmerKey: "demo-farmer-krishna",
       crop: normalizedCrop,
       quantityKg: parsedQuantity,
       location: location.trim(),

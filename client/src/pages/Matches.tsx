@@ -26,7 +26,7 @@ export default function Matches() {
 
   useEffect(() => {
     if (listingId && !matchMutation.data && !matchMutation.isPending && !matchMutation.error) {
-      matchMutation.mutate({ listingId, farmerKey: "demo-farmer-krishna" });
+      matchMutation.mutate({ listingId });
     }
   }, [listingId]);
 

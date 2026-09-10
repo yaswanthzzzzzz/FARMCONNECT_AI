@@ -1,5 +1,6 @@
 import type { ErrorRequestHandler, RequestHandler } from "express";
 import type { ApiErrorShape } from "@shared/types";
+import { HttpError } from "@shared/_core/errors";
 
 export const notFoundHandler: RequestHandler = (_req, res) => {
   const payload: ApiErrorShape = {
@@ -10,6 +11,11 @@ export const notFoundHandler: RequestHandler = (_req, res) => {
 };
 
 export const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
+  if (error instanceof HttpError) {
+    const payload: ApiErrorShape = { code: error.statusCode === 401 ? "UNAUTHORIZED" : error.statusCode === 403 ? "FORBIDDEN" : "REQUEST_ERROR", message: error.message };
+    res.status(error.statusCode).json(payload);
+    return;
+  }
   const requestId = `req_${Date.now().toString(36)}`;
   console.error(`[API ${requestId}]`, error);
   const payload: ApiErrorShape = {
