@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1788968385626,
+      "tag": "0000_sturdy_tusk",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1788969651064,
+      "tag": "0001_romantic_marten_broadcloak",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1788972451508,
+      "tag": "0002_mute_runaways",
+      "breakpoints": true
+    }
+  ]
+}
