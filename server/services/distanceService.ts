@@ -1,7 +1,7 @@
 import type { DemoLocation, DistanceEstimate } from "@shared/types";
 import { isValidLatitude, isValidLongitude, locationSourceLabel } from "@shared/location";
 
-type LocationLike = Pick<DemoLocation, "city" | "district" | "state"> & Partial<Pick<DemoLocation, "latitude" | "longitude">>;
+export type LocationLike = Pick<DemoLocation, "city" | "district" | "state"> & Partial<Pick<DemoLocation, "latitude" | "longitude">>;
 const UNAVAILABLE_DISTANCE_PENALTY_KM = 10_000;
 
 const demoCoordinates: Record<string, { latitude: number; longitude: number }> = {

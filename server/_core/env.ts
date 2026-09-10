@@ -3,6 +3,8 @@ export const ENV = {
   cookieSecret: process.env.JWT_SECRET ?? "",
   openRouterApiKey: process.env.OPENROUTER_API_KEY ?? "",
   openRouterModel: process.env.OPENROUTER_MODEL ?? "openrouter/auto",
+  routeProviderUrl: process.env.ROUTE_PROVIDER_URL ?? "",
+  routeProviderApiKey: process.env.ROUTE_PROVIDER_API_KEY ?? "",
   databaseUrl: process.env.DATABASE_URL ?? "",
   oAuthServerUrl: process.env.OAUTH_SERVER_URL ?? "",
   ownerOpenId: process.env.OWNER_OPEN_ID ?? "",
