@@ -15,6 +15,7 @@ import { updateUserRole } from "./db";
 import { assertSameOrigin } from "./_core/auth";
 import { authenticatePassword, loginCredentialsSchema, registerCredentialsSchema, registerPasswordAccount } from "./services/passwordAuthService";
 import { sdk } from "./_core/sdk";
+import { demoService } from "./services/demoService";
 
 export const appRouter = router({
   system: systemRouter,
@@ -50,6 +51,14 @@ export const appRouter = router({
   }),
   market: router({
     demoSnapshot: publicProcedure.query(() => marketService.getDemoSnapshot()),
+  }),
+  demo: router({
+    explore: publicProcedure.input(z.object({
+      farmerIndex: z.number().int().min(0).max(20).default(0),
+      buyerIndex: z.number().int().min(0).max(20).default(0),
+      farmerQuantity: z.number().int().positive().max(100000).optional(),
+      buyerQuantity: z.number().int().positive().max(100000).optional(),
+    })).query(({ input }) => demoService.explore(input)),
   }),
   farmer: router({
     listings: protectedProcedure.query(({ ctx }) => farmerListingService.list(ctx.user.identityKey)),
