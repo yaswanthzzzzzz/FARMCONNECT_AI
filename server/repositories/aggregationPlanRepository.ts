@@ -4,6 +4,7 @@ import type { AggregationPlan, AggregationPlanContribution, BuyerRequirement } f
 import { getDb } from "../db";
 
 const fallbackPlans: AggregationPlan[] = [];
+const fallbackPlanOwners = new Map<number, string>();
 let nextFallbackId = 1;
 
 function parseJson<T>(value: string | null | undefined, fallback: T): T {
@@ -69,6 +70,7 @@ export const aggregationPlanRepository = {
     if (!db) {
       const saved = { ...plan, id: nextFallbackId++, status: "proposed" as const, createdAt: new Date().toISOString() };
       fallbackPlans.unshift(saved);
+      fallbackPlanOwners.set(saved.id!, buyerKey);
       return saved;
     }
     const result = await db.insert(aggregationPlans).values({
@@ -109,7 +111,7 @@ export const aggregationPlanRepository = {
 
   async getById(id: number, buyerKey: string): Promise<AggregationPlan | undefined> {
     const db = await getDb();
-    if (!db) return fallbackPlans.find(plan => plan.id === id);
+    if (!db) return fallbackPlans.find(plan => plan.id === id && fallbackPlanOwners.get(plan.id!) === buyerKey);
     const rows = await db.select().from(aggregationPlans).where(and(eq(aggregationPlans.id, id), eq(aggregationPlans.buyerKey, buyerKey))).limit(1);
     const row = rows[0];
     return row ? toPlan(row, await getContributions(row.id)) : undefined;
@@ -117,7 +119,7 @@ export const aggregationPlanRepository = {
 
   async listForRequirement(requirement: Pick<BuyerRequirement, "id">, buyerKey: string): Promise<AggregationPlan[]> {
     const db = await getDb();
-    if (!db) return fallbackPlans.filter(plan => plan.requirementId === requirement.id);
+    if (!db) return fallbackPlans.filter(plan => plan.requirementId === requirement.id && fallbackPlanOwners.get(plan.id!) === buyerKey);
     const rows = await db.select().from(aggregationPlans).where(and(eq(aggregationPlans.requirementId, requirement.id), eq(aggregationPlans.buyerKey, buyerKey))).orderBy(desc(aggregationPlans.createdAt));
     return Promise.all(rows.map(async row => toPlan(row, await getContributions(row.id))));
   },
