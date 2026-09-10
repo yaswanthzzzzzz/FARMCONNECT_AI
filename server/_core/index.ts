@@ -13,6 +13,7 @@ import { registerMatchRoutes } from "../routes/matchRoutes";
 import { registerBuyerRoutes } from "../routes/buyerRoutes";
 import { registerMarketPriceRoutes } from "../routes/marketPriceRoutes";
 import { registerAggregationRoutes } from "../routes/aggregationRoutes";
+import { registerAIRoutes } from "../routes/aiRoutes";
 import { errorHandler } from "../middleware/errorHandler";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -47,6 +48,7 @@ async function startServer() {
   registerBuyerRoutes(app);
   registerMarketPriceRoutes(app);
   registerAggregationRoutes(app);
+  registerAIRoutes(app);
   // tRPC API
   app.use(
     "/api/trpc",
