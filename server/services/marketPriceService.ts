@@ -44,12 +44,12 @@ function normalizeUpstreamRecord(record: Record<string, unknown>, crop: Crop, lo
 
 async function fetchOfficialReference(query: MarketPriceQuery): Promise<MarketPriceReference | undefined> {
   if (!ENV.marketPriceApiUrl) return undefined;
-  const url = new URL(ENV.marketPriceApiUrl);
-  url.searchParams.set("crop", query.crop);
-  url.searchParams.set("location", query.location);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 4500);
   try {
+    const url = new URL(ENV.marketPriceApiUrl);
+    url.searchParams.set("crop", query.crop);
+    url.searchParams.set("location", query.location);
     const response = await fetch(url, { headers: ENV.marketPriceApiKey ? { "x-api-key": ENV.marketPriceApiKey, "api-key": ENV.marketPriceApiKey } : undefined, signal: controller.signal });
     if (!response.ok) return undefined;
     const payload = await response.json() as { records?: Record<string, unknown>[] } | Record<string, unknown>;

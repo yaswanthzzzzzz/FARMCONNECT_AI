@@ -66,7 +66,7 @@ export function registerLogisticsRoutes(app: Express) {
           return;
         }
         const coordinates = resolveLocationCoordinates(candidate.listing);
-        origin = safeLocation(candidate.listing.location, candidate.listing.city, candidate.listing.district, candidate.listing.state, coordinates?.latitude, coordinates?.longitude);
+        origin = safeLocation(`Farmer supply · ${candidate.listing.city}`, candidate.listing.city, candidate.listing.district, candidate.listing.state, coordinates?.latitude, coordinates?.longitude);
         destination = safeLocation(requirement.location, requirement.city, requirement.district, requirement.state, requirement.latitude, requirement.longitude);
       }
 
